@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BillSense — Finance Agent</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root{
+        --bg1:#667eea; --bg2:#764ba2;
+        --card:#ffffff; --muted:#6b7280; --text:#111827;
+        --border: rgba(17,24,39,.08);
+        --shadow: 0 10px 30px rgba(0,0,0,.10);
+        --radius: 16px;
+        --accent: #4f46e5;
+        --accent2:#7c3aed;
+        }
+        *{box-sizing:border-box}
+        html,body{height:100%}
+        body{
+        margin:0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+        color:var(--text);
+        background: linear-gradient(135deg, var(--bg1), var(--bg2));
+        min-height: 100dvh;
+        overflow-x:hidden;
+        overflow-y:hidden;
+        }
+
+        .app{
+        height: 100dvh;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: minmax(280px, 340px) 1fr;
+        }
+        @media (max-width: 980px){
+        .app{ grid-template-columns: 1fr; }
+        .sidebar{ position:relative; }
+        }
+
+        .sidebar{
+        padding:18px;
+        background: rgba(255,255,255,.14);
+        backdrop-filter: blur(10px);
+        border-right: 1px solid rgba(255,255,255,.18);
+        }
+        .main{
+        padding:18px;
+        display:flex;
+        flex-direction:column;
+        gap:14px;
+        min-height:0;
+        }
+
+        .brand{
+        display:flex; align-items:center; gap:10px;
+        color:white; font-weight:800; letter-spacing:.2px;
+        font-size:18px;
+        margin-bottom:12px;
+        }
+        .brand span{opacity:.95}
+        .card{
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        }
+
+        /* Upload */
+        .upload{
+        padding:14px;
+        }
+        .dropzone{
+        border: 2px dashed rgba(99,102,241,.45);
+        border-radius: 14px;
+        padding:18px;
+        text-align:center;
+        background: rgba(79,70,229,.06);
+        cursor:pointer;
+        transition: .15s ease;
+        }
+        .dropzone:hover{transform: translateY(-1px)}
+        .dropzone.dragover{
+        background: rgba(124,58,237,.10);
+        border-color: rgba(124,58,237,.70);
+        }
+        .dropzone h3{margin:8px 0 4px 0; font-size:14px}
+        .dropzone p{margin:0; color:var(--muted); font-size:12px}
+        .upload-actions{
+        display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;
+        }
+        .btn{
+        appearance:none; border:none;
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        color:white;
+        padding:10px 12px;
+        border-radius: 12px;
+        cursor:pointer;
+        font-weight:700;
+        font-size:13px;
+        box-shadow: 0 10px 20px rgba(79,70,229,.18);
+        }
+        .btn.secondary{
+        background: rgba(255,255,255,.75);
+        color:#111827;
+        border: 1px solid var(--border);
+        box-shadow: none;
+        font-weight:650;
+        }
+
+        .stats{
+        margin-top:14px;
+        display:grid;
+        grid-template-columns: 1fr;
+        gap:10px;
+        }
+        .stat{
+        padding:12px;
+        display:flex; align-items:baseline; justify-content:space-between;
+        gap:10px;
+        }
+        .stat .label{font-size:12px; color:var(--muted); font-weight:650}
+        .stat .value{font-size:18px; font-weight:800}
+        .mini{font-size:12px; color:var(--muted)}
+
+        /* Main header */
+        .header{
+        padding:14px 16px;
+        color:white;
+        border-radius: var(--radius);
+        background: rgba(255,255,255,.14);
+        border: 1px solid rgba(255,255,255,.20);
+        backdrop-filter: blur(10px);
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:12px;
+        flex-wrap:wrap;
+        }
+        .header h1{
+        margin:0;
+        font-size:18px;
+        letter-spacing:.2px;
+        }
+        .pill{
+        display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+        font-size:12px;
+        color: rgba(255,255,255,.92);
+        }
+        .pill span{
+        background: rgba(255,255,255,.15);
+        border: 1px solid rgba(255,255,255,.22);
+        padding:6px 10px;
+        border-radius: 999px;
+        backdrop-filter: blur(8px);
+        white-space:nowrap;
+        }
+
+        /* Chat + report */
+        .content{
+        flex:1;
+        display:grid;
+        grid-template-columns: 1.05fr .95fr;
+        gap:14px;
+        min-height:0;
+        }
+        @media (max-width: 980px){
+        .content{ grid-template-columns: 1fr; }
+        }
+
+        .chat{
+        display:flex;
+        flex-direction:column;
+        min-height:0;
+        overflow:hidden;
+        }
+        .chat .top{
+        padding:14px 16px;
+        border-bottom: 1px solid var(--border);
+        display:flex; justify-content:space-between; align-items:center; gap:10px;
+        }
+        .chat .top strong{font-size:14px}
+        .chat .top .hint{font-size:12px; color:var(--muted)}
+        .messages{
+        padding:14px 16px;
+        overflow:auto;
+        min-height:0;
+        display:flex; flex-direction:column; gap:10px;
+        background: rgba(255,255,255,.55);
+        }
+        .msg{
+        max-width: 92%;
+        padding:10px 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background:white;
+        box-shadow: 0 8px 18px rgba(0,0,0,.05);
+        font-size:13px;
+        line-height:1.35;
+        white-space:pre-wrap;
+        }
+        .msg.user{
+        margin-left:auto;
+        background: rgba(79,70,229,.10);
+        border-color: rgba(79,70,229,.20);
+        }
+        .composer{
+        padding:12px;
+        display:flex; gap:10px; align-items:center;
+        border-top: 1px solid var(--border);
+        background:white;
+        }
+        .composer input{
+        flex:1;
+        padding:11px 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(17,24,39,.12);
+        outline:none;
+        font-size:13px;
+        }
+        .quick{
+        display:flex; gap:8px; flex-wrap:wrap;
+        padding: 0 12px 12px 12px;
+        background:white;
+        border-top:1px solid var(--border);
+        }
+        .chip{
+        font-size:12px;
+        border:1px solid rgba(17,24,39,.10);
+        background: rgba(17,24,39,.03);
+        padding:6px 10px;
+        border-radius:999px;
+        cursor:pointer;
+        }
+
+        .report{
+        min-height:0;
+        overflow:hidden;
+        display:flex;
+        flex-direction:column;
+        }
+        .report .top{
+        padding:14px 16px;
+        border-bottom: 1px solid var(--border);
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:10px;
+        flex-wrap:wrap;
+        }
+        .report .grid{
+        padding:14px 16px;
+        overflow:auto;
+        min-height:0;
+        background: rgba(255,255,255,.55);
+        display:grid;
+        grid-template-columns: 1fr;
+        gap:12px;
+        }
+        .panel{
+        padding:12px;
+        }
+        .panel h3{
+        margin:0 0 8px 0;
+        font-size:13px;
+        }
+        .panel .sub{
+        color:var(--muted);
+        font-size:12px;
+        margin-top:6px;
+        }
+        .kvs{
+        display:grid;
+        grid-template-columns: 1fr auto;
+        gap:8px;
+        font-size:12px;
+        margin-top:6px;
+        }
+        .kvs div:nth-child(2n){ font-weight:750; }
+        canvas{ width:100% !important; height:auto !important; max-height: 300px;}
+
+        .panel canvas {aspect-ratio: 2 / 1; min-height: 200px; }
+
+        .toast{
+        position:fixed;
+        right:16px;
+        bottom:16px;
+        background:#111827;
+        color:white;
+        padding:10px 12px;
+        border-radius:12px;
+        font-size:12px;
+        opacity:0;
+        transform: translateY(8px);
+        transition: .2s ease;
+        max-width: min(380px, calc(100vw - 32px));
+        z-index: 999;
+        }
+        .toast.show{ opacity:1; transform: translateY(0); }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+        <div class="brand">💰 <span>BillSense</span></div>
+
+        <div class="card upload">
+            <div id="dropzone" class="dropzone">
+            <div style="font-size:30px;">📄</div>
+            <h3>Drop your statement here</h3>
+            <p>Supports CSV, Excel, PDF</p>
+            <p class="mini" style="margin-top:6px;">or click to browse</p>
+            </div>
+            <div class="upload-actions">
+            <button class="btn" id="browseBtn">Upload file</button>
+            <button class="btn secondary" id="demoBtn" title="Loads the bundled sample CSV into the UI (no server upload).">Load sample (client)</button>
+            <input id="fileInput" type="file" accept=".csv,.xlsx,.xls,.pdf" style="display:none" />
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="card stat">
+            <div>
+                <div class="label">Total Transactions</div>
+                <div class="mini" id="periodHint">—</div>
+            </div>
+            <div class="value" id="statTxns">0</div>
+            </div>
+            <div class="card stat">
+            <div class="label">Total Spent</div>
+            <div class="value" id="statSpent">$0</div>
+            </div>
+            <div class="card stat">
+            <div class="label">Avg Spend / Transaction</div>
+            <div class="value" id="statAvg">$0</div>
+            </div>
+            <div class="card stat">
+            <div class="label">Categories</div>
+            <div class="value" id="statCats">0</div>
+            </div>
+            <div class="card stat">
+            <div class="label">Health Score</div>
+            <div class="value" id="statHealth">—</div>
+            </div>
+        </div>
+        </aside>
+
+        <main class="main">
+        <div class="header">
+            <h1>Chat with your Finance Agent</h1>
+            <div class="pill">
+            <span id="filePill">No file uploaded</span>
+            <span id="currencyPill">USD</span>
+            <span id="sessionPill">Session: —</span>
+            </div>
+        </div>
+
+        <div class="content">
+            <section class="card chat">
+            <div class="top">
+                <strong>Conversation</strong>
+                <div class="hint">Upload a statement, then ask questions like “Analyze my spending this month”.</div>
+            </div>
+            <div id="messages" class="messages"></div>
+            <div class="quick">
+                <div class="chip" data-prompt="Help me analyze my spending this month. Generate insights and update the charts.">Analyze my month</div>
+                <div class="chip" data-prompt="How much did I spend on Dining? Compare it to the previous month if possible, and suggest one change.">Dining total</div>
+                <div class="chip" data-prompt="Which expenses look unnecessary or impulsive? Give examples and what to cut.">Unnecessary spend</div>
+                <div class="chip" data-prompt="Help me set a monthly budget based on my history. Propose category budgets.">Set budget</div>
+                <div class="chip" data-prompt="Based on the trend, how much will I spend next month? Explain briefly.">Forecast next month</div>
+                <div class="chip" data-prompt="How can I save more money next month? Give me 5 specific actions based on my spending habits.">Savings tips</div>
+            </div>
+            <div class="composer">
+                <input id="chatInput" placeholder="Ask about your finances…" />
+                <button class="btn" id="sendBtn">Send</button>
+            </div>
+            </section>
+
+            <section class="card report">
+            <div class="top">
+                <strong>Auto Report</strong>
+                <div class="hint" id="reportHint">Upload data to generate charts.</div>
+            </div>
+            <div class="grid" id="reportGrid">
+                <div class="card panel">
+                <h3>Spending by Category</h3>
+                <canvas id="pieChart"></canvas>
+                <div class="sub" id="pieSub">—</div>
+                </div>
+
+                <div class="card panel">
+                <h3>Monthly Trend</h3>
+                <canvas id="lineChart"></canvas>
+                <div class="sub" id="lineSub">—</div>
+                </div>
+
+                <div class="card panel">
+                <h3>Top Merchants</h3>
+                <div id="topMerchants" class="kvs"></div>
+                <div class="sub" id="topSub">—</div>
+                </div>
+
+                <div class="card panel">
+                <h3>Budget & Forecast</h3>
+                <div id="budgetBox" class="kvs"></div>
+                <div class="sub" id="budgetSub">—</div>
+                </div>
+            </div>
+            </section>
+        </div>
+        </main>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+<script>
+    // ------------------ State ------------------
+    let sessionId = null;
+    let currency = "USD";
+    let currentReport = null;
+    let pieChart = null;
+    let lineChart = null;
+
+    const els = {
+        dropzone: document.getElementById("dropzone"),
+        browseBtn: document.getElementById("browseBtn"),
+        demoBtn: document.getElementById("demoBtn"),
+        fileInput: document.getElementById("fileInput"),
+        messages: document.getElementById("messages"),
+        chatInput: document.getElementById("chatInput"),
+        sendBtn: document.getElementById("sendBtn"),
+        toast: document.getElementById("toast"),
+
+        filePill: document.getElementById("filePill"),
+        currencyPill: document.getElementById("currencyPill"),
+        sessionPill: document.getElementById("sessionPill"),
+
+        statTxns: document.getElementById("statTxns"),
+        statSpent: document.getElementById("statSpent"),
+        statAvg: document.getElementById("statAvg"),
+        statCats: document.getElementById("statCats"),
+        statHealth: document.getElementById("statHealth"),
+        periodHint: document.getElementById("periodHint"),
+
+        reportHint: document.getElementById("reportHint"),
+        pieSub: document.getElementById("pieSub"),
+        lineSub: document.getElementById("lineSub"),
+        topMerchants: document.getElementById("topMerchants"),
+        topSub: document.getElementById("topSub"),
+        budgetBox: document.getElementById("budgetBox"),
+        budgetSub: document.getElementById("budgetSub"),
+    };
+
+    function toast(msg){
+        els.toast.textContent = msg;
+        els.toast.classList.add("show");
+        setTimeout(()=>els.toast.classList.remove("show"), 2400);
+    }
+
+    function money(n){
+        const v = Number(n || 0);
+        const sym = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : currency + " ";
+        return sym + v.toFixed(2);
+    }
+
+    function addMsg(role, text){
+        const div = document.createElement("div");
+        div.className = "msg " + (role === "user" ? "user" : "assistant");
+        div.textContent = text;
+        els.messages.appendChild(div);
+        els.messages.scrollTop = els.messages.scrollHeight;
+        return div;
+    }
+
+    function setPills({fileName}){
+        els.filePill.textContent = fileName ? `File: ${fileName}` : "No file uploaded";
+        els.currencyPill.textContent = currency;
+        els.sessionPill.textContent = sessionId ? `Session: ${sessionId.slice(0,8)}…` : "Session: —";
+    }
+
+    function updateStats(report){
+        const t = report.totals;
+        els.statTxns.textContent = String(t.transactionCount || 0);
+        els.statSpent.textContent = money(t.totalSpent || 0);
+        els.statAvg.textContent = money(t.avgSpendPerTxn || 0);
+        const cats = Object.keys(report.byCategory || {}).length;
+        els.statCats.textContent = String(cats);
+        els.statHealth.textContent = report.healthScore ? String(report.healthScore.score) : "—";
+        const p = report.periodHint || {};
+        if (p.start && p.end) els.periodHint.textContent = `${p.start} → ${p.end} (${p.monthsDetected || 0} mo)`;
+        else els.periodHint.textContent = "—";
+    }
+
+    function renderPie(byCategory){
+        const labels = Object.keys(byCategory || {});
+        const data = labels.map(k => byCategory[k]);
+        const ctx = document.getElementById("pieChart");
+        if (pieChart) pieChart.destroy();
+        pieChart = new Chart(ctx, {
+        type: "pie",
+        data: { labels, datasets: [{ data }] },
+        options: {
+            plugins: {
+            legend: { position: "bottom" },
+            tooltip: { callbacks: { label: (c)=> `${c.label}: ${money(c.raw)}` } }
+            }
+        }
+        });
+        const total = data.reduce((a,x)=>a+x,0);
+        els.pieSub.textContent = total ? `Tracked spend: ${money(total)} across ${labels.length} categories.` : "—";
+    }
+
+    function renderLine(byMonth){
+        const entries = Object.entries(byMonth || {}).filter(([k])=>k && k !== "unknown").sort((a,b)=>a[0].localeCompare(b[0]));
+        const labels = entries.map(([k])=>k);
+        const data = entries.map(([,v])=>v);
+        const ctx = document.getElementById("lineChart");
+        if (lineChart) lineChart.destroy();
+        lineChart = new Chart(ctx, {
+        type: "line",
+        data: { labels, datasets: [{ data, tension: 0.25 }] },
+        options: {
+            plugins: { legend: { display:false }, tooltip: { callbacks: { label: (c)=> money(c.raw) } } },
+            scales: { y: { ticks: { callback: (v)=> money(v).replace(/\.\d{2}$/,"") } } }
+        }
+        });
+        if (labels.length) {
+        const last = labels[labels.length-1];
+        els.lineSub.textContent = `Latest month: ${last} — ${money(byMonth[last])}`;
+        } else {
+        els.lineSub.textContent = "Not enough date data for a monthly trend.";
+        }
+    }
+
+    function renderTop(topMerchants){
+        els.topMerchants.innerHTML = "";
+        if (!topMerchants || !topMerchants.length) {
+        els.topSub.textContent = "—";
+        return;
+        }
+        topMerchants.forEach(m=>{
+        const k1 = document.createElement("div");
+        k1.textContent = m.merchant;
+        const k2 = document.createElement("div");
+        k2.textContent = `${money(m.spent)} (${m.count})`;
+        els.topMerchants.appendChild(k1);
+        els.topMerchants.appendChild(k2);
+        });
+        els.topSub.textContent = "Sorted by total spend.";
+    }
+
+    function renderBudgetForecast(report){
+        const b = report.budget || {};
+        const f = report.forecast || null;
+        els.budgetBox.innerHTML = "";
+
+        const keys = Object.keys(b);
+        if (keys.length){
+        keys.slice(0,8).forEach(k=>{
+            const k1 = document.createElement("div"); k1.textContent = k;
+            const k2 = document.createElement("div"); k2.textContent = money(b[k]);
+            els.budgetBox.appendChild(k1); els.budgetBox.appendChild(k2);
+        });
+        } else {
+        const k1 = document.createElement("div"); k1.textContent = "Budget";
+        const k2 = document.createElement("div"); k2.textContent = "Not set";
+        els.budgetBox.appendChild(k1); els.budgetBox.appendChild(k2);
+        }
+
+        const fText = f ? `${money(f.nextMonthSpend)} (${f.confidence}) — ${f.method}` : "No forecast available.";
+        els.budgetSub.textContent = fText;
+    }
+
+    function updateReport(report){
+        currentReport = report;
+        updateStats(report);
+        renderPie(report.byCategory || {});
+        renderLine(report.byMonth || {});
+        renderTop(report.topMerchants || []);
+        renderBudgetForecast(report);
+        els.reportHint.textContent = report.healthScore ? report.healthScore.summary : "Report ready.";
+    }
+
+    async function uploadFile(file){
+        const fd = new FormData();
+        fd.append("file", file);
+        toast("Uploading and parsing…");
+        const res = await fetch("/api/upload", { method:"POST", body: fd });
+        const data = await res.json();
+        if (!res.ok) {
+        toast(data.error || "Upload failed");
+        addMsg("assistant", `Upload failed: ${data.error || "Unknown error"}`);
+        return;
+        }
+        sessionId = data.sessionId;
+        currency = data.currency || "USD";
+        setPills({fileName: data.fileName});
+        updateReport(data.report);
+        addMsg("assistant", "File loaded. Ask me anything about your finances!");
+        toast("File loaded");
+    }
+
+    async function sendChat(text){
+        if (!sessionId){
+        toast("Upload a statement first.");
+        addMsg("assistant", "Please upload a CSV/Excel/PDF statement first.");
+        return;
+        }
+        const user = addMsg("user", text);
+        els.chatInput.value = "";
+        const bot = addMsg("assistant", "Thinking…");
+
+        const res = await fetch("/api/chat", {
+        method:"POST",
+        headers:{ "content-type":"application/json" },
+        body: JSON.stringify({ sessionId, message: text })
+        });
+        const data = await res.json();
+        if (!res.ok){
+        bot.textContent = `Error: ${data.error || "Unknown error"}`;
+        return;
+        }
+        bot.textContent = data.message || "";
+        if (data.report) updateReport(data.report);
+    }
+
+    // ------------------ UI events ------------------
+    els.browseBtn.addEventListener("click", ()=> els.fileInput.click());
+    els.dropzone.addEventListener("click", ()=> els.fileInput.click());
+    els.fileInput.addEventListener("change", (e)=>{
+        const file = e.target.files && e.target.files[0];
+        if (file) uploadFile(file);
+    });
+
+    // Drag & drop
+    ["dragenter","dragover"].forEach(ev=>{
+        els.dropzone.addEventListener(ev, (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        els.dropzone.classList.add("dragover");
+        });
+    });
+    ["dragleave","drop"].forEach(ev=>{
+        els.dropzone.addEventListener(ev, (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        els.dropzone.classList.remove("dragover");
+        });
+    });
+    els.dropzone.addEventListener("drop", (e)=>{
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) uploadFile(file);
+    });
+
+    // Chat
+    els.sendBtn.addEventListener("click", ()=> {
+        const text = els.chatInput.value.trim();
+        if (text) sendChat(text);
+    });
+    els.chatInput.addEventListener("keydown", (e)=>{
+        if (e.key === "Enter") {
+        const text = els.chatInput.value.trim();
+        if (text) sendChat(text);
+        }
+    });
+
+    // Quick chips
+    document.querySelectorAll(".chip").forEach(ch=>{
+        ch.addEventListener("click", ()=>{
+        const p = ch.getAttribute("data-prompt");
+        if (p) sendChat(p);
+        });
+    });
+
+    // Load sample client-side (no server) — for quick UI testing
+    els.demoBtn.addEventListener("click", async ()=>{
+        try{
+        const res = await fetch("sample_txns.csv");
+        const text = await res.text();
+        // create a File object so we can reuse upload path
+        const file = new File([text], "sample_txns.csv", { type:"text/csv" });
+        uploadFile(file);
+        }catch(e){
+        toast("Sample not found");
+        }
+    });
+
+    // Welcome message
+    addMsg("assistant",
+    `Hi! I’m BillSense, your finance agent.
+    Upload a transaction file (CSV / Excel / PDF), and I can:
+    • Analyze spending patterns and trends
+    • Categorize expenses
+    • Generate charts and a report
+    • Suggest budgets and forecast next month
+    • Provide concrete savings actions`);
+    setPills({fileName:null});
+</script>
+</body>
+</html>
